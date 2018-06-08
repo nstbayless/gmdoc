@@ -53,11 +53,23 @@ class DocModel:
         self.objects = []
         self.scripts = []
         
+        # style
+        self.footerMessage = ""
+        self.css = ""
+        
     def __repr__(self):
         tr = "objects: "
         for obj in self.objects:
             tr += "\n  " + obj.__repr__()
         return tr
+        
+    def getObject(self, objectName):
+        if objectName == "":
+            return None
+        for object in self.objects:
+            if object.name == objectName:
+                return object
+        return None
     
     def parseDocText(self, lines):
         text = ""

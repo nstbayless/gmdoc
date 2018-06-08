@@ -6,6 +6,7 @@ import glob
 
 # local includes
 import docmodel
+import builddoc
 
 def printUsage():
     print("Usage: " + sys.argv[0] + " path-to-project [path-to-doc-output]")
@@ -44,7 +45,7 @@ def main():
         
     dcm = docmodel.DocModel()
     dcm.parseProject(projectpath)
-    print(dcm)
+    builddoc.build(dcm, buildpath)
     return 0
     
 errcode = main()
