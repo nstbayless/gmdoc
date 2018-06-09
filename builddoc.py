@@ -25,10 +25,36 @@ class BuildDoc:
         if not os.path.exists(dir):
             os.makedirs(dir)
 
+    def buildInheritanceTree(self, object):
+        if len(object.children) == 0:
+            return ""
+        html = "<ul>\n"
+        for child in object.children:
+            html += "<li>"
+            html += '<a href="' + child.name + '.html">' + child.name
+            html += "</li>\n"
+            html += self.buildInheritanceTree(child)
+        html += "</ul>"
+        return html
+
     def buildObject(self, object):
         file = os.path.join("objects", object.name + ".html")
-        html = "<h1>" + object.name + "</h1>\n" + \
-            "<h2> Description </h2>\n" + \
+        # name (header)
+        html = "<h1>" + object.name + "</h1>\n";
+        
+        # Parents
+        if object.parent == None:
+            html += "<p><i>This object has no parent.</i></p>\n"
+        else:
+            hObj = object
+            hhtml = ""
+            while hObj != None:
+                hhtml = (' <b>&gt;</b> ' if hObj.parent != None else "") + '<a href="' + hObj.name + '.html">' + hObj.name + "</a>" + hhtml
+                hObj = hObj.parent
+            html += hhtml + "\n"
+        
+        # Code-scraped description
+        html += "<h2> Description </h2>\n" + \
             "<p>" + object.docText + "</p>\n"
         varTableName = "Variables"
         varObjectSource = object
@@ -41,6 +67,10 @@ class BuildDoc:
             if varObjectSource != None:
                 varTableName = "Inherited from " + varObjectSource.name
             html += "</table>\n"
+            
+        if len(object.children) > 0:
+            html += "<h2> Descendents of " + object.name + " </h2>"
+            html += self.buildInheritanceTree(object)
         
         self.makePage(file, html, object.name)
     
@@ -49,7 +79,7 @@ class BuildDoc:
         for object in self.docModel.objects:
             html += '<p><a href="objects/' + object.name + '.html">' + object.name + '</a></p>'
         self.makePage("objectsListing.html", html, "Objects Listing")
-        
+    
     def build(self):
         self.mkdir("objects")
         self.mkdir("scripts")

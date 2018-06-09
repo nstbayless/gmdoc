@@ -24,6 +24,7 @@ class ObjectModel:
         self.parentName = ""
         self.docText = ""
         self.vars = [] # variables
+        self.children = []
         self._varnames = []
         self._docmodel = dm
     
@@ -132,6 +133,10 @@ class DocModel:
         # parse objects
         for objectFile in objectFiles:
             self.parseObject(objectFile)
+        for object in self.objects:
+            object.parent = self.getObject(object.parentName)
+            if object.parent != None:
+                object.parent.children.append(object)
 
     def _collectLines(self, eltEvent):
         lines = []
