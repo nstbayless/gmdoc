@@ -14,15 +14,62 @@ class BuildDoc:
     def makePage(self, file, html, title = ""):
         pathDepth = file.count("/")
         pathPrepend = "../" * pathDepth
-        _html = ""
+        _html = "<html>"
         if title != "":
-            _html  += '<title>' + title+ '</title>' 
+            _html  += '<title>' + title+ '</title>'
+        # bootstrap
+        _html += """<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+		<!-- jQuery library -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		<!-- Latest compiled JavaScript -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>\n"""
         _html += '<link rel="stylesheet" href="' + os.path.join(pathPrepend , 'assets/styles/default.css') + '" type="text/css">\n'
         _html += "<body>\n"
+        _html += """<div class="row no-gutters">\n"""
+        _html += """
+            <div class="col-sm-3 col-sm-push-9">
+				<h2>Flea</h2>
+				<img class="centre" src="https://vignette.wikia.nocookie.net/megaman/images/8/86/Mm1fleasprite.png/revision/latest?cb=20110621041125" alt="">
+				<button data-toggle="collapse" data-target="#inGame"><h2>In-Game Information</h2></button>
+				<div id="inGame" class="collapse in">
+					<div>
+						<h3 class="alt">Points:</h3>
+						<div>300</div>
+					</div>
+					<div>
+						<h3 class="alt">HP:</h3>
+						<div>1</div>
+					</div>
+					<div>
+						<h3 class="alt">Attack Damage:</h3>
+						<div>2</div>
+					</div>
+					<div>
+						<h3 class="alt">Weakness:</h3>
+						<div><a href="/wiki/Mega_Buster" title="Mega Buster">Mega Buster</a></div>
+					</div>
+				</div>
+				<button data-toggle="collapse" data-target="#series"><h2>Series Information</h2></button>
+				<div id="series" class="collapse in">
+					<div>
+						<h3 class="alt">Filler item:</h3>
+						<div>Filler text</div>
+						<h3 class="alt">Filler item:</h3>
+						<div>Filler text</div>
+						<h3 class="alt">Filler item:</h3>
+						<div>Filler text</div>
+						<h3 class="alt">Filler item:</h3>
+						<div>Filler text</div>
+					</div>
+				</div>
+			</div>"""
+        _html += """<div class="col-sm-9 col-sm-pull-3">"""
         _html += html
+        _html += "</div></div>"
         if self.docModel.footerMessage != "":
             _html += "\n<h5>" + self.docModel.footerMessage + "</h5>"
-        _html += "\n</body>"
+        _html += "\n</body></html>"
         with open(os.path.join(self.buildPath, file), "w") as f:
             f.write(_html)
     
