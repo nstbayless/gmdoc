@@ -1,4 +1,10 @@
+import shutil
 import os
+
+def copyReplaceDirectory(src, dst):
+    if os.path.exists(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst)
 
 class BuildDoc:
     def __init__(self, docModel, buildPath):
@@ -11,7 +17,7 @@ class BuildDoc:
         _html = ""
         if title != "":
             _html  += '<title>' + title+ '</title>' 
-        _html += '<link rel="stylesheet" href="' + os.path.join(pathPrepend , 'styles/default.css') + '" type="text/css">\n'
+        _html += '<link rel="stylesheet" href="' + os.path.join(pathPrepend , 'assets/styles/default.css') + '" type="text/css">\n'
         _html += "<body>\n"
         _html += html
         if self.docModel.footerMessage != "":
@@ -84,9 +90,8 @@ class BuildDoc:
         self.mkdir("objects")
         self.mkdir("scripts")
         self.mkdir("pages")
-        self.mkdir("styles")
-        with open(os.path.join(self.buildPath, "styles", "default.css"), "w") as f:
-            f.write(self.docModel.css)
+        if self.docModel.assetsDir != "":
+            copyReplaceDirectory(self.docModel.assetsDir, os.path.join(self.buildPath, "assets"))
         with open(os.path.join(self.buildPath, ".gitignore"), "w") as f:
             f.write("*")
         for object in self.docModel.objects:

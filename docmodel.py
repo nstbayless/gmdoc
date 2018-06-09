@@ -56,7 +56,7 @@ class DocModel:
         
         # style
         self.footerMessage = ""
-        self.css = ""
+        self.assetsDir = ""
         
     def __repr__(self):
         tr = "objects: "
@@ -137,6 +137,11 @@ class DocModel:
             object.parent = self.getObject(object.parentName)
             if object.parent != None:
                 object.parent.children.append(object)
+        
+        self.assetsDir = os.path.join(projectpath, "docs", "assets")
+        if not os.path.exists(self.assetsDir):
+            self.assetsDir = ""
+        
 
     def _collectLines(self, eltEvent):
         lines = []
