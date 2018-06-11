@@ -90,8 +90,12 @@ class BuildDoc:
         html += "</ul>"
         return html
 
+    def buildPage(self, page):
+        file = page.path
+        self.makePage(file, page.contents, page.title)
+
     def buildObject(self, object):
-        file = os.path.join("objects", object.name + ".html")
+        file = "objects/" + object.name + ".html")
         # name (header)
         html = "<h1>" + object.name + "</h1>\n";
         
@@ -163,6 +167,8 @@ class BuildDoc:
             f.write("*")
         for object in self.docModel.objects:
             self.buildObject(object)
+        for page in self.docModel.pages:
+            self.buildPage(page)
         self.buildObjectsRoot()
 
 def build(docModel, buildPath):

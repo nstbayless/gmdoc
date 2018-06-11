@@ -10,6 +10,11 @@ from constants import *
 reLines = re.compile("//.*?$|/\*.*?\*/|^\s*([a-zA-Z_0-9]+)\s*=((.*)?(//(.*))?$)", re.MULTILINE)
 reFlag = re.compile("^\s*(@.+?)\b")
 
+class PageModel:
+    def __init__:
+        content = ""
+        path = ""
+
 class VarModel:
     def __init__(self):
         self.name = ""
@@ -102,6 +107,7 @@ class DocModel:
     def __init__(self):
         self.objects = []
         self.scripts = []
+        self.pages = []
         self.assetTreeObjects = NodeTree("objects", False)
         self.assetTreeScripts = NodeTree("scripts", False)
         
@@ -218,10 +224,24 @@ class DocModel:
         parseAssetsScript(assets.find("scripts"), assetTreeObjects)
         parseAssetsObject(assets.find("objects"), assetTreeScripts)
 
+    def parsePage(self, pageFile):
+        with open(pageFile, 'r') as file:
+           dstPath = os.path.basename(pageFile)
+           dstPath = os.path.splitext(dstPath)[0]
+           if dstPath != "index"
+             dstPath = "pages/" + dstPath
+           dstPath += ".html"
+           pageModel = PageModel()
+           pageModel.path = dstPath
+           pageModel.contents = markdown.markdown(pageFile.read())
+           pageModel.title = "~"
+           self.pages.append(pageModel)
+
     def parseProject(self, projectpath):
         objectFiles = glob.glob(os.path.join(projectpath, "objects/*.object.gmx"))
         scriptFiles = glob.glob(os.path.join(projectpath, "scripts/*.gml"))
         projectFile = glob.glob(os.path.join(projectpath, "*.project.gml"))[0]
+        pageFiles = glob.glob(os.path.join(docpath, "pages/*.md"))
 
         # parse objects
         for objectFile in objectFiles:
@@ -230,9 +250,12 @@ class DocModel:
             object.linkParent()
             if object.parent != None:
                 object.parent.children.append(object)
+        
+        # parse pages
+        for page in pageFiles:
+            self.parsePage(pageFile)
 
         self.parseProjectFile(projectFile)
-        
         self.assetsDir = os.path.join(projectpath, "docs", "assets")
         if not os.path.exists(self.assetsDir):
             self.assetsDir = ""
