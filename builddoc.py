@@ -115,8 +115,9 @@ class BuildDoc:
             html += "<h2> " + varTableName + " </h2>\n" + \
             "<table><tr><th>Name</th><th>Value</th><th>Description</th></tr>"
             anyDifferent = False
+            ccExists = False
             for var in varObjectSource.vars:
-            if var.baseObject != varObjectSource:
+                if var.baseObject != varObjectSource:
                      continue
                 myVar = object.getVariable(var.name)
                 isDifferent = False
@@ -125,11 +126,16 @@ class BuildDoc:
                     isDifferent = True
                     anyDifferent = True
                     differenceMarker = " <i>(*)</i>"
-                html += "<tr><td>" + var.name + "</td><td>" + myVar.createValue + differenceMarker + "</td><td>" + myVar.docText + "</td></tr>\n"
+                varname = var.name
+                if "cc" in var.flags:
+                    ccExists = True
+                    varname = "<b>" + "</b>"
+                html += "<tr><td>" + varname + "</td><td>" + myVar.createValue + differenceMarker + "</td><td>" + myVar.docText + "</td></tr>\n"
             html += "</table>\n"
             if anyDifferent:
                 html += "<p><i>* value is modified from the default for " + varObjectSource.name + ".<i></p>"
-
+            if ccExists:
+                html += "<p><i>variable names in <b>bold</b> are safe to set in creation code.<i></p>"
             # setup next iteration
             varObjectSource = self.docModel.getObject(varObjectSource.parentName)
             if varObjectSource != None:

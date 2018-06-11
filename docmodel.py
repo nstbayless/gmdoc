@@ -8,6 +8,7 @@ import markdown
 from constants import *
 
 reLines = re.compile("//.*?$|/\*.*?\*/|^\s*([a-zA-Z_0-9]+)\s*=((.*)?(//(.*))?$)", re.MULTILINE)
+reFlag = re.compile("^\s*(@.+?)\b")
 
 class VarModel:
     def __init__(self):
@@ -15,9 +16,13 @@ class VarModel:
         self.docText = ""
         self.createValue = ""
         self.baseObject = self
+	self.flags = []
     
     def __repr__(self):
-        return self.name + ": " + self.docText
+        flagstr = ""
+        if len(self.flags) > 0:
+           flagstr = " [@" + ",@".join(self.flags) + "]"
+        return self.name + flagstr + " = " + self.createValue + ": " + self.docText
 
 class ObjectModel:
     def __init__(self, dm):
@@ -99,10 +104,20 @@ class DocModel:
                 return object
         return None
     
-    def parseDocText(self, lines):
+    def parseDocText(self, lines, flagBuffer = []):
         text = ""
         for l in lines:
-            text += l[1] + "\n"
+            l1 = l[1].strip()
+            # parse @flags
+            while True:
+               m = reFlag.match(l1)
+               if m == None:
+                   break
+               flag = m.group(1)
+               l1 = l1[m.end(1):-1]
+               if flag not in flagBuffer:
+                   flagBuffer.append(flag)
+            text += l1 + "\n"
         return markdown.markdown(text.strip())
     
     def parseObject(self, objectFile):
@@ -139,11 +154,11 @@ class DocModel:
                     if i > 0:
                         if lines[i-1][0] == LT_COMMENT:
                             proposedDocIDX = i-1
-                            var.docText = self.parseDocText([lines[i-1]])
+                            var.docText = self.parseDocText([lines[i-1]], var.flags)
                     if len(lines) > i + 1:
                         if lines[i+1][0] == LT_POSTCOMMENT:
                             proposedDocIDX = i
-                            var.docText = self.parseDocText([lines[i+1]])
+                            var.docText = self.parseDocText([lines[i+1]], var.flags)
                     if var.name not in obj._varnames:
                         obj._varnames.append(var.name)
                         obj.vars.append(var)
