@@ -7,12 +7,14 @@ import re
 import markdown
 from constants import *
 
-reLines = re.compile("//.*?$|/\*.*?\*/|^\s*([a-zA-Z_0-9]+)\s*=(.*//(.*)$)?", re.MULTILINE)
+reLines = re.compile("//.*?$|/\*.*?\*/|^\s*([a-zA-Z_0-9]+)\s*=((.*)?(//(.*))?$)", re.MULTILINE)
 
 class VarModel:
     def __init__(self):
         self.name = ""
         self.docText = ""
+        self.createValue = ""
+        self.baseObject = self
     
     def __repr__(self):
         return self.name + ": " + self.docText
@@ -22,11 +24,13 @@ class ObjectModel:
         self.name = "<undefined>"
         self.spriteName = ""
         self.parentName = ""
+        self.parent = None
         self.docText = ""
         self.vars = [] # variables
         self.children = []
         self._varnames = []
         self._docmodel = dm
+        self._linked = False
     
     def __reprvars__(self):
         tr = ""
@@ -48,6 +52,29 @@ class ObjectModel:
         tr += "\n\n -- members --"
         tr += self.__reprvars__()
         return tr
+
+    def linkParent(self):
+        if not self._linked:
+            self.parent = self._docmodel.getObject(self.parentName)
+            if self.parent != None:
+                self.parent.linkParent()
+                for var in self.parent.vars:
+                    for myVar in vars:
+                        if var.name == myVar.name:
+                            myVar.baseObject = var.baseObject
+                            if var.docText != "":
+                                myVar.docText = var.docText + "</p><p>Notes for " + self.name + ":</p><p>\n" + myVar.docText
+            
+
+    def getVariable(self, varName):
+        for var in vars:
+            if var.name == varName:
+                return var
+        if self.parentName == ""
+            return None
+        parent = self._docmodel.getObject(self.parentName)
+        if parent != None:
+            return parent.getVariable(varName)
 
 class DocModel:
     def __init__(self):
@@ -134,7 +161,7 @@ class DocModel:
         for objectFile in objectFiles:
             self.parseObject(objectFile)
         for object in self.objects:
-            object.parent = self.getObject(object.parentName)
+            object.linkParent()
             if object.parent != None:
                 object.parent.children.append(object)
         
@@ -182,8 +209,9 @@ class DocModel:
                             var = VarModel()
                             var.name = m.group(1)
                             lines.append((LT_VAR, (var)))
-                            if m.group(3) != None:
-                                lines.append((LT_POSTCOMMENT, m.group(3)))
+                            var.createValue = m.group(2).strip()
+                            if m.group(5) != None:
+                                lines.append((LT_POSTCOMMENT, m.group(5)))
                         prev = m.end()
             lines.append((LT_SEP, "---- action separator ----"))
         return lines

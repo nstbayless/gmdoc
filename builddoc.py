@@ -106,20 +106,34 @@ class BuildDoc:
                 hObj = hObj.parent
             html += hhtml + "\n"
         
-        # Code-scraped description
+        # Code-scraped description and defaults
         html += "<h2> Description </h2>\n" + \
             "<p>" + object.docText + "</p>\n"
         varTableName = "Variables"
         varObjectSource = object
         while varObjectSource != None:
             html += "<h2> " + varTableName + " </h2>\n" + \
-            "<table><tr><th>Name</th><th>Description</th></tr>"
+            "<table><tr><th>Name</th><th>Value</th><th>Description</th></tr>"
+            anyDifferent = False
             for var in varObjectSource.vars:
-                html += "<tr><td>" + var.name + "</td><td>" + var.docText + "</td></tr>\n"
+            if var.baseObject != varObjectSource:
+                     continue
+                myVar = object.getVariable(var.name)
+                isDifferent = False
+                differenceMarker = ""
+                if myVar.createValue != var.createValue
+                    isDifferent = True
+                    anyDifferent = True
+                    differenceMarker = " <i>(*)</i>"
+                html += "<tr><td>" + var.name + "</td><td>" + myVar.createValue + differenceMarker + "</td><td>" + myVar.docText + "</td></tr>\n"
+            html += "</table>\n"
+            if anyDifferent:
+                html += "<p><i>* value is modified from the default for " + varObjectSource.name + ".<i></p>"
+
+            # setup next iteration
             varObjectSource = self.docModel.getObject(varObjectSource.parentName)
             if varObjectSource != None:
                 varTableName = "Inherited from " + varObjectSource.name
-            html += "</table>\n"
             
         if len(object.children) > 0:
             html += "<h2> Descendents of " + object.name + " </h2>"
