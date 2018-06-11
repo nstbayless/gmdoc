@@ -24,6 +24,22 @@ class VarModel:
            flagstr = " [@" + ",@".join(self.flags) + "]"
         return self.name + flagstr + " = " + self.createValue + ": " + self.docText
 
+class NodeTree:
+    def __init(self, name, isNode)
+        self.name = name
+        self.isNode = isNode
+        self.children = []
+        self.parent = None
+
+    def getPath(self):
+        str = ""
+        if self.parent != None:
+            str = self.parent.getPath()
+        str += self.name
+        if not isNode:
+            str += "/"
+        return str
+
 class ObjectModel:
     def __init__(self, dm):
         self.name = "<undefined>"
@@ -33,6 +49,7 @@ class ObjectModel:
         self.docText = ""
         self.vars = [] # variables
         self.children = []
+        self.assetPath = ""
         self._varnames = []
         self._docmodel = dm
         self._linked = False
@@ -85,6 +102,8 @@ class DocModel:
     def __init__(self):
         self.objects = []
         self.scripts = []
+        self.assetTreeObjects = NodeTree("objects", False)
+        self.assetTreeScripts = NodeTree("scripts", False)
         
         # style
         self.footerMessage = ""
@@ -168,10 +187,42 @@ class DocModel:
         
         self.objects.append(obj)
     
+    def parseAssetsScript(self, scriptElt, assetTree):
+        for subElt in scriptElt:
+            if subElt.tag == "scripts":
+                subTree = NodeTree(subElt.attrib["name"], False)
+                assetTree.children.append(subTree)
+                subTree.parent = assetTree
+                self.parseAssetsScript(subElt, subTree)
+            if subElt.tag == "script":
+                assetTree.children.append(NodeTree(subElt.text[len("scripts/"):-1], True))
+
+    def parseAssetsObject(self, objectElt, assetTree):
+        for subElt in objectElt:
+            if subElt.tag == "objects":
+                subTree = NodeTree(subElt.attrib["name"], False)
+                assetTree.children.append(subTree)
+                subTree.parent = assetTree
+                self.parseAssetsObject(subElt, subTree)
+            if subElt.tag == "object":
+                objectName = subElt.text[len("objects/":-1]
+                object = self.getObject(objectName)
+                object.assetPath = assetTree.getPath()
+                assetTree.children.append(NodeTree(objectName, True))
+
+    def parseProjectFile(self, file):
+        tree = ET.parse(file)
+        assets = tree.getroot()
+        if assets.tag != "assets":
+	   assets = assets.find("assets")
+        parseAssetsScript(assets.find("scripts"), assetTreeObjects)
+        parseAssetsObject(assets.find("objects"), assetTreeScripts)
+
     def parseProject(self, projectpath):
         objectFiles = glob.glob(os.path.join(projectpath, "objects/*.object.gmx"))
         scriptFiles = glob.glob(os.path.join(projectpath, "scripts/*.gml"))
-        
+        projectFile = glob.glob(os.path.join(projectpath, "*.project.gml"))[0]
+
         # parse objects
         for objectFile in objectFiles:
             self.parseObject(objectFile)
@@ -179,6 +230,8 @@ class DocModel:
             object.linkParent()
             if object.parent != None:
                 object.parent.children.append(object)
+
+        self.parseProjectFile(projectFile)
         
         self.assetsDir = os.path.join(projectpath, "docs", "assets")
         if not os.path.exists(self.assetsDir):
