@@ -103,7 +103,7 @@ class BuildDoc:
 
     def buildPage(self, page):
         file = page.path
-        print("   " + file)
+        print("    " + file)
         self.makePage(file, page.contents, page.title)
 
     def buildObject(self, object):
@@ -171,7 +171,7 @@ class BuildDoc:
         self.makePage(file, html, object.name, sidebar)
     
     def buildListingsHelper(self, assetTree):
-        html = "<ul> " + assetTree.name
+        html = "<b>" + assetTree.name + "</b>\n<ul>"
         for subTree in assetTree.children:
             if subTree.isNode:
                 object = self.docModel.getObject(subTree.name)
@@ -180,7 +180,7 @@ class BuildDoc:
                 else:
                     html += '<li>' + subTree.name + ' (missing)</li>'
             else:
-                html += self.buildListingsHelper(subTree)
+                html += "<li>" + self.buildListingsHelper(subTree) + "</li>"
         return html + '</ul>'
     
     def buildListings(self):
