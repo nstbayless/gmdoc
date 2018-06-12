@@ -93,17 +93,22 @@ class ObjectModel:
 
     def linkParent(self):
         if not self._linked:
+            self._linked = True
             self.parent = self._docmodel.getObject(self.parentName)
             if self.parent != None:
                 self.parent.linkParent()
                 for var in self.parent.vars:
+                    foundVar = False
                     for myVar in self.vars:
                         if var.name == myVar.name:
+                            foundVar = True
                             myVar.baseObject = var.baseObject
                             if len(myVar.docText.strip()) > 0:
                                 myVar.docText = var.docText + "</p><p>Notes for " + self.name + ":</p><p>\n" + myVar.docText
                             else:
                                 myVar.docText = var.docText
+                    if not foundVar:
+                        self.vars.append(var.copy())
             
 
     def getVariable(self, varName):
