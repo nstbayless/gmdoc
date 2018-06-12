@@ -1,17 +1,53 @@
 import shutil
 import os
+import util
+import importlib.util
 
 def copyReplaceDirectory(src, dst):
     if os.path.exists(dst):
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
 
+def sanitizeAnchor(str):
+    str = str.replace(" ","") \
+              .replace("\n","") \
+              .replace("\t","") \
+              .replace("\r","")
+    if str == "":
+        return "A"
+    return str
+
+class SidebarInfo:
+    def __init__(self, object):
+        self.object = object
+        self.title = object.name
+        self.imagePath = util.getRelativeNetPath("objects/"+object.name+".html","assets/images/objects/" + object.spriteName + ".png")
+        self.collapseTitles = []
+        self.collapseInfo = []
+        if (self.object.sidebarScript != ""):
+            exec(open(self.object.sidebarScript, "r").read())
+        
+    def build(self):
+        html = """<div class="col-sm-3 col-sm-push-9">\n"""
+        html += "<h2>" + self.title + "</h2>"
+        html += '<img class = "centre" src="' + self.imagePath + '" alt="' + self.object.spriteName + '">\n'
+        for title in self.collapseTitles:
+            html += '<button data-toggle="collapse" data-target="#' + sanitizeAnchor(title) + '"><h2>' + title + '</h2></button>\n'
+            html += '<div id="' + sanitizeAnchor(title) + '" class="collapse in">\n'
+            for field, value in self.collapseInfo:
+                html += '<div><h3 class="alt">' + field + '</h3>\n'
+                html += '<div>' + value + '</div>'
+                html += '  </div>'
+            html += ' </div>'
+        html += '</div>'
+        return html
+
 class BuildDoc:
     def __init__(self, docModel, buildPath):
         self.docModel = docModel
         self.buildPath = buildPath
 
-    def makePage(self, file, html, title = ""):
+    def makePage(self, file, html, title = "", sidebar = None):
         pathDepth = file.count("/")
         pathPrepend = "../" * pathDepth
         _html = "<html>"
@@ -26,47 +62,13 @@ class BuildDoc:
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>\n"""
         _html += '<link rel="stylesheet" href="' + os.path.join(pathPrepend , 'assets/styles/default.css') + '" type="text/css">\n'
         _html += "<body>\n"
-        _html += """<div class="row no-gutters">\n"""
-        _html += """
-            <div class="col-sm-3 col-sm-push-9">
-				<h2>Flea</h2>
-				<img class="centre" src="https://vignette.wikia.nocookie.net/megaman/images/8/86/Mm1fleasprite.png/revision/latest?cb=20110621041125" alt="">
-				<button data-toggle="collapse" data-target="#inGame"><h2>In-Game Information</h2></button>
-				<div id="inGame" class="collapse in">
-					<div>
-						<h3 class="alt">Points:</h3>
-						<div>300</div>
-					</div>
-					<div>
-						<h3 class="alt">HP:</h3>
-						<div>1</div>
-					</div>
-					<div>
-						<h3 class="alt">Attack Damage:</h3>
-						<div>2</div>
-					</div>
-					<div>
-						<h3 class="alt">Weakness:</h3>
-						<div><a href="/wiki/Mega_Buster" title="Mega Buster">Mega Buster</a></div>
-					</div>
-				</div>
-				<button data-toggle="collapse" data-target="#series"><h2>Series Information</h2></button>
-				<div id="series" class="collapse in">
-					<div>
-						<h3 class="alt">Filler item:</h3>
-						<div>Filler text</div>
-						<h3 class="alt">Filler item:</h3>
-						<div>Filler text</div>
-						<h3 class="alt">Filler item:</h3>
-						<div>Filler text</div>
-						<h3 class="alt">Filler item:</h3>
-						<div>Filler text</div>
-					</div>
-				</div>
-			</div>"""
-        _html += """<div class="col-sm-9 col-sm-pull-3">"""
+        if sidebar != None:
+            _html += """<div class="row no-gutters">\n"""
+            _html += sidebar.build()
+            _html += """<div class="col-sm-9 col-sm-pull-3">"""
         _html += html
-        _html += "</div></div>"
+        if sidebar != None:
+            _html += "</div></div>"
         if self.docModel.footerMessage != "":
             _html += "\n<h5>" + self.docModel.footerMessage + "</h5>"
         _html += "\n</body></html>"
@@ -91,6 +93,12 @@ class BuildDoc:
         return html
 
     def buildObject(self, object):
+        # sidebar
+        sidebar = None
+        if object.sidebarScript != "":
+            sidebar = SidebarInfo(object)
+        
+        # main html
         file = os.path.join("objects", object.name + ".html")
         # name (header)
         html = "<h1>" + object.name + "</h1>\n";
@@ -124,8 +132,7 @@ class BuildDoc:
         if len(object.children) > 0:
             html += "<h2> Descendents of " + object.name + " </h2>"
             html += self.buildInheritanceTree(object)
-        
-        self.makePage(file, html, object.name)
+        self.makePage(file, html, object.name, sidebar)
     
     def buildObjectsRoot(self):
         html = "<h1> Objects Listing </h1><h3>All Objects:</h3>"

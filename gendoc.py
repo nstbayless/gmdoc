@@ -29,6 +29,7 @@ def main():
     # input project
     path = sys.argv[1]
     projectpath = isValidProjectDirectory(path)
+    docpath = os.path.join(projectpath, "docs")
     
     if projectpath == False:
         print("Error: invalid project directory")
@@ -44,7 +45,7 @@ def main():
         os.makedirs(buildpath)
         
     dcm = docmodel.DocModel()
-    dcm.parseProject(projectpath)
+    dcm.parseProject(projectpath, docpath)
     builddoc.build(dcm, buildpath)
     return 0
     

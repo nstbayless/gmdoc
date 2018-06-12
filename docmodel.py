@@ -27,6 +27,7 @@ class ObjectModel:
         self.children = []
         self._varnames = []
         self._docmodel = dm
+        self.sidebarScript = ""
     
     def __reprvars__(self):
         tr = ""
@@ -54,9 +55,15 @@ class DocModel:
         self.objects = []
         self.scripts = []
         
+        # cache
+        self.topLevelObjects = []
+        
         # style
         self.footerMessage = ""
         self.assetsDir = ""
+        
+        self.projectPath = ""
+        self.docPath = ""
         
     def __repr__(self):
         tr = "objects: "
@@ -78,6 +85,15 @@ class DocModel:
             text += l[1] + "\n"
         return markdown.markdown(text.strip())
     
+    # recursively find sidebar script for object and all children
+    def findObjectSidebarInfo(self, object):
+        sidebarFile = os.path.join(self.docPath, "objects", "sidebars", object.name + ".py")
+        if os.path.isfile(sidebarFile):
+            object.sidebarScript = sidebarFile
+        for child in object.children:
+            child.sidebarScript = object.sidebarScript
+            self.findObjectSidebarInfo(child)
+    
     def parseObject(self, objectFile):
         tree = ET.parse(objectFile)
         root = tree.getroot()
@@ -90,6 +106,8 @@ class DocModel:
         obj.spriteName = eltSpriteName.text
         eltParentName = root.find("parentName")
         obj.parentName = eltParentName.text
+        if obj.parentName == "<undefined>":
+            obj.parentName = ""
         # event parse
         eltEvents = root.find("events")
         lines = []
@@ -125,8 +143,12 @@ class DocModel:
                     obj.docText = self.parseDocText(lines[0:proposedDocIDX])
         
         self.objects.append(obj)
+        if obj.parentName == "":
+            self.topLevelObjects.append(obj)
     
-    def parseProject(self, projectpath):
+    def parseProject(self, projectpath, docpath):
+        self.projectPath = projectpath
+        self.docPath = docpath
         objectFiles = glob.glob(os.path.join(projectpath, "objects/*.object.gmx"))
         scriptFiles = glob.glob(os.path.join(projectpath, "scripts/*.gml"))
         
@@ -137,11 +159,15 @@ class DocModel:
             object.parent = self.getObject(object.parentName)
             if object.parent != None:
                 object.parent.children.append(object)
-        
-        self.assetsDir = os.path.join(projectpath, "docs", "assets")
+        for object in self.topLevelObjects:
+            self.findObjectSidebarInfo(object)
+        self.assetsDir = os.path.join(docpath, "assets")
         if not os.path.exists(self.assetsDir):
             self.assetsDir = ""
         
+        # prevent computer path from leaking into built html
+        self.projectPath = ""
+        self.docPath = ""
 
     def _collectLines(self, eltEvent):
         lines = []
