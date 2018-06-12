@@ -179,6 +179,8 @@ class DocModel:
         obj.name = os.path.splitext(os.path.splitext(os.path.basename(objectFile))[0])[0]
         eltSpriteName = root.find("spriteName")
         obj.spriteName = eltSpriteName.text
+        if obj.spriteName == "<undefined>":
+            obj.spriteName = ""
         eltParentName = root.find("parentName")
         obj.parentName = eltParentName.text
         if obj.parentName == "<undefined>":
@@ -302,10 +304,6 @@ class DocModel:
         self.assetsDir = os.path.join(docpath, "assets")
         if not os.path.exists(self.assetsDir):
             self.assetsDir = ""
-        
-        # prevent local path from leaking into built html
-        self.projectPath = ""
-        self.docPath = ""
         
     def cleanCreateValue(self, str):
         if str == None:

@@ -4,7 +4,7 @@ def getPathComponents(path):
     pathComps = []
     while len(path) > 0:
         (path, x) = os.path.split(path)
-        pathComps.append(x)
+        pathComps.insert(0, x)
     return pathComps
 
 def getJoinedPath(components):

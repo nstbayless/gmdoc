@@ -2,6 +2,7 @@ import shutil
 import os
 import util
 import importlib.util
+import glob
 
 def copyReplaceDirectory(src, dst):
     if os.path.exists(dst):
@@ -21,7 +22,9 @@ class SidebarInfo:
     def __init__(self, object):
         self.object = object
         self.title = object.name
-        self.imagePath = util.getRelativeNetPath("objects/"+object.name+".html","assets/images/objects/" + object.spriteName + ".png")
+        self.imagePath = ""
+        if object.spriteName != "":
+            self.imagePath = util.getRelativeNetPath("objects/"+object.name+".html","assets/images/objects/" + object.spriteName + ".png")
         self.collapseTitles = []
         self.collapseInfo = []
         self.enabled = False
@@ -33,7 +36,8 @@ class SidebarInfo:
     def build(self):
         html = """<div class="col-sm-3 col-sm-push-9">\n"""
         html += "<h2>" + self.title + "</h2>"
-        html += '<img class = "centre" src="' + self.imagePath + '" alt="' + self.object.spriteName + '">\n'
+        if self.imagePath != "":
+            html += '<img class = "centre" src="' + self.imagePath + '" alt="' + self.object.spriteName + '">\n'
         i = -1
         for title in self.collapseTitles:
             i+=1
@@ -171,12 +175,21 @@ class BuildDoc:
             html += '<p><a href="objects/' + object.name + '.html">' + object.name + '</a></p>'
         self.makePage("objectsListing.html", html, "Objects Listing")
     
+    def copySpriteFiles(self):
+        files = glob.glob(os.path.join(self.docModel.projectPath, "sprites", "images", "*_0.png"))
+        for file in files:
+            fileNoNumber = os.path.basename(file[:-6] + ".png")
+            shutil.copyfile(file, os.path.join(self.buildPath, "assets", "images", "objects", fileNoNumber))
+    
     def build(self):
         self.mkdir("objects")
         self.mkdir("scripts")
         self.mkdir("pages")
         if self.docModel.assetsDir != "":
             copyReplaceDirectory(self.docModel.assetsDir, os.path.join(self.buildPath, "assets"))
+            self.mkdir(os.path.join("assets", "images"))
+            self.mkdir(os.path.join("assets", "images", "objects"))
+            self.copySpriteFiles()
         with open(os.path.join(self.buildPath, ".gitignore"), "w") as f:
             f.write("*")
         for object in self.docModel.objects:
