@@ -6,6 +6,12 @@ import os
 import re
 import markdown
 from constants import *
+import json
+
+builtIn = {}
+
+with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "gms2_map.json"), "r") as gms2Map:
+    builtIn = json.load(gms2Map)
 
 reLines = re.compile("//.*?$|/\*.*?\*/|^\s*([a-zA-Z_0-9]+)\s*=((.*?)(//(.*))?$)", re.MULTILINE)
 reFlag = re.compile("^\s*@(.+?)\\b")
@@ -151,7 +157,7 @@ class DocModel:
                l1 = l1[m.end(1):]
                if flag not in flagBuffer:
                    flagBuffer.append(flag)
-            text += l1 + "\n"
+            text += "<p>" + l1 + "</p>\n"
         return markdown.markdown(text.strip())
     
     # recursively find sidebar script for object and all children
@@ -196,15 +202,21 @@ class DocModel:
                 proposedDocIDX = i # index of last line of doctext
                 if lType == LT_VAR:
                     var = lText
-                    if i > 0:
-                        if lines[i-1][0] == LT_COMMENT:
-                            proposedDocIDX = i-1
-                            var.docText = self.parseDocText([lines[i-1]], var.flags)
+                    
+                    j = 0
+                    while j <= i:
+                        j+=1
+                        if lines[i-j][0] != LT_COMMENT:
+                            j -= 1
+                            break
+                        
+                    proposedDocIDX = i-j
+                    var.docText = self.parseDocText(lines[i-j:i], var.flags)
                     if len(lines) > i + 1:
                         if lines[i+1][0] == LT_POSTCOMMENT:
                             proposedDocIDX = i
                             var.docText = self.parseDocText([lines[i+1]], var.flags)
-                    if var.name not in obj._varnames:
+                    if var.name not in obj._varnames and var.name not in builtIn:
                         obj._varnames.append(var.name)
                         var.baseObject = obj
                         obj.vars.append(var)
@@ -247,8 +259,8 @@ class DocModel:
         assets = tree.getroot()
         if assets.tag != "assets":
             assets = assets.find("assets")
-        self.parseAssetsScript(assets.find("scripts"), self.assetTreeObjects)
-        self.parseAssetsObject(assets.find("objects"), self.assetTreeScripts)
+        self.parseAssetsScript(assets.find("scripts"), self.assetTreeScripts)
+        self.parseAssetsObject(assets.find("objects"), self.assetTreeObjects)
 
     def parsePage(self, pageFile):
         with open(pageFile, 'r') as file:

@@ -24,17 +24,22 @@ class SidebarInfo:
         self.imagePath = util.getRelativeNetPath("objects/"+object.name+".html","assets/images/objects/" + object.spriteName + ".png")
         self.collapseTitles = []
         self.collapseInfo = []
+        self.enabled = False
         if (self.object.sidebarScript != ""):
+            sidebar = self
             exec(open(self.object.sidebarScript, "r").read())
+            
         
     def build(self):
         html = """<div class="col-sm-3 col-sm-push-9">\n"""
         html += "<h2>" + self.title + "</h2>"
         html += '<img class = "centre" src="' + self.imagePath + '" alt="' + self.object.spriteName + '">\n'
+        i = -1
         for title in self.collapseTitles:
+            i+=1
             html += '<button data-toggle="collapse" data-target="#' + sanitizeAnchor(title) + '"><h2>' + title + '</h2></button>\n'
             html += '<div id="' + sanitizeAnchor(title) + '" class="collapse in">\n'
-            for field, value in self.collapseInfo:
+            for field, value in self.collapseInfo[i]:
                 html += '<div><h3 class="alt">' + field + '</h3>\n'
                 html += '<div>' + value + '</div>'
                 html += '  </div>'
@@ -101,6 +106,8 @@ class BuildDoc:
         sidebar = None
         if object.sidebarScript != "":
             sidebar = SidebarInfo(object)
+            if not sidebar.enabled:
+                sidebar = None
         
         # main html
         file = "objects/" + object.name + ".html"
@@ -147,7 +154,7 @@ class BuildDoc:
             if anyDifferent:
                 html += "<p><i>* value is modified from the default for " + varObjectSource.name + ".<i></p>"
             if ccExists:
-                html += "<p><i>variable names in <b>bold</b> are safe to set in creation code.<i></p>"
+                html += "<p><i>variable names in <span class=\"cc\">bold</span> are safe to set in creation code.<i></p>"
             # setup next iteration
             varObjectSource = self.docModel.getObject(varObjectSource.parentName)
             if varObjectSource != None:
