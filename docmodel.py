@@ -5,6 +5,7 @@ import glob
 import os
 import re
 import markdown
+import markdown.extensions.extra
 from constants import *
 import json
 
@@ -158,7 +159,10 @@ class DocModel:
                if flag not in flagBuffer:
                    flagBuffer.append(flag)
             text += "<p>" + l1 + "</p>\n"
-        return markdown.markdown(text.strip())
+        return self.getMarkdown(text.strip())
+    
+    def getMarkdown(self, md):
+        return markdown.markdown(md, extensions=['markdown.extensions.extra'])
     
     # recursively find sidebar script for object and all children
     def findObjectSidebarInfo(self, object):
@@ -273,7 +277,7 @@ class DocModel:
             dstPath += ".html"
             pageModel = PageModel()
             pageModel.path = dstPath
-            pageModel.contents = markdown.markdown(open(pageFile, "r").read())
+            pageModel.contents = self.getMarkdown(open(pageFile, "r").read())
             pageModel.title = "~"
             self.pages.append(pageModel)
 

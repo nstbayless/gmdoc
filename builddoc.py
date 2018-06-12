@@ -103,6 +103,7 @@ class BuildDoc:
 
     def buildPage(self, page):
         file = page.path
+        print(file)
         self.makePage(file, page.contents, page.title)
 
     def buildObject(self, object):
