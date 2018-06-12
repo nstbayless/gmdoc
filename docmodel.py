@@ -7,27 +7,58 @@ import re
 import markdown
 from constants import *
 
-reLines = re.compile("//.*?$|/\*.*?\*/|^\s*([a-zA-Z_0-9]+)\s*=(.*//(.*)$)?", re.MULTILINE)
+reLines = re.compile("//.*?$|/\*.*?\*/|^\s*([a-zA-Z_0-9]+)\s*=((.*?)(//(.*))?$)", re.MULTILINE)
+reFlag = re.compile("^\s*@(.+?)\\b")
+
+class PageModel:
+    def __init__(self):
+        content = ""
+        path = ""
 
 class VarModel:
     def __init__(self):
         self.name = ""
         self.docText = ""
+        self.createValue = ""
+        self.baseObject = None
+        self.flags = []
     
     def __repr__(self):
-        return self.name + ": " + self.docText
+        flagstr = ""
+        if len(self.flags) > 0:
+           flagstr = " [@" + ",@".join(self.flags) + "]"
+        return self.name + flagstr + " = " + self.createValue + ": " + self.docText
+
+class NodeTree:
+    def __init__(self, name, isNode):
+        self.name = name
+        self.isNode = isNode
+        self.children = []
+        self.parent = None
+
+    def getPath(self):
+        str = ""
+        if self.parent != None:
+            str = self.parent.getPath()
+        str += self.name
+        if not self.isNode:
+            str += "/"
+        return str
 
 class ObjectModel:
     def __init__(self, dm):
         self.name = "<undefined>"
         self.spriteName = ""
         self.parentName = ""
+        self.parent = None
         self.docText = ""
         self.vars = [] # variables
         self.children = []
+        self.assetPath = ""
         self._varnames = []
         self._docmodel = dm
         self.sidebarScript = ""
+        self._linked = False
     
     def __reprvars__(self):
         tr = ""
@@ -50,10 +81,38 @@ class ObjectModel:
         tr += self.__reprvars__()
         return tr
 
+    def linkParent(self):
+        if not self._linked:
+            self.parent = self._docmodel.getObject(self.parentName)
+            if self.parent != None:
+                self.parent.linkParent()
+                for var in self.parent.vars:
+                    for myVar in self.vars:
+                        if var.name == myVar.name:
+                            myVar.baseObject = var.baseObject
+                            if len(myVar.docText.strip()) > 0:
+                                myVar.docText = var.docText + "</p><p>Notes for " + self.name + ":</p><p>\n" + myVar.docText
+                            else:
+                                myVar.docText = var.docText
+            
+
+    def getVariable(self, varName):
+        for var in self.vars:
+            if var.name == varName:
+                return var
+        if self.parentName == "":
+            return None
+        parent = self._docmodel.getObject(self.parentName)
+        if parent != None:
+            return parent.getVariable(varName)
+
 class DocModel:
     def __init__(self):
         self.objects = []
         self.scripts = []
+        self.pages = []
+        self.assetTreeObjects = NodeTree("objects", False)
+        self.assetTreeScripts = NodeTree("scripts", False)
         
         # cache
         self.topLevelObjects = []
@@ -79,10 +138,20 @@ class DocModel:
                 return object
         return None
     
-    def parseDocText(self, lines):
+    def parseDocText(self, lines, flagBuffer = []):
         text = ""
         for l in lines:
-            text += l[1] + "\n"
+            l1 = l[1].strip()
+            # parse @flags
+            while True:
+               m = reFlag.search(l1)
+               if m == None:
+                   break
+               flag = m.group(1)
+               l1 = l1[m.end(1):]
+               if flag not in flagBuffer:
+                   flagBuffer.append(flag)
+            text += l1 + "\n"
         return markdown.markdown(text.strip())
     
     # recursively find sidebar script for object and all children
@@ -130,13 +199,14 @@ class DocModel:
                     if i > 0:
                         if lines[i-1][0] == LT_COMMENT:
                             proposedDocIDX = i-1
-                            var.docText = self.parseDocText([lines[i-1]])
+                            var.docText = self.parseDocText([lines[i-1]], var.flags)
                     if len(lines) > i + 1:
                         if lines[i+1][0] == LT_POSTCOMMENT:
                             proposedDocIDX = i
-                            var.docText = self.parseDocText([lines[i+1]])
+                            var.docText = self.parseDocText([lines[i+1]], var.flags)
                     if var.name not in obj._varnames:
                         obj._varnames.append(var.name)
+                        var.baseObject = obj
                         obj.vars.append(var)
                 if not docTextParsed:
                     docTextParsed = True
@@ -145,29 +215,93 @@ class DocModel:
         self.objects.append(obj)
         if obj.parentName == "":
             self.topLevelObjects.append(obj)
-    
+
+    def parseAssetsScript(self, scriptElt, assetTree):
+        for subElt in scriptElt:
+            if subElt.tag == "scripts":
+                subTree = NodeTree(subElt.attrib["name"], False)
+                assetTree.children.append(subTree)
+                subTree.parent = assetTree
+                self.parseAssetsScript(subElt, subTree)
+            if subElt.tag == "script":
+                assetTree.children.append(NodeTree(subElt.text[len("scripts/"):], True))
+
+    def parseAssetsObject(self, objectElt, assetTree):
+        for subElt in objectElt:
+            if subElt.tag == "objects":
+                subTree = NodeTree(subElt.attrib["name"], False)
+                assetTree.children.append(subTree)
+                subTree.parent = assetTree
+                self.parseAssetsObject(subElt, subTree)
+            if subElt.tag == "object":
+                objectName = subElt.text[len("objects/"):]
+                object = self.getObject(objectName)
+                if object == None:
+                    print("Warning: " + objectName + " referenced in .project.gmx but not found on disk.")
+                    continue
+                object.assetPath = assetTree.getPath()
+                assetTree.children.append(NodeTree(objectName, True))
+
+    def parseProjectFile(self, file):
+        tree = ET.parse(file)
+        assets = tree.getroot()
+        if assets.tag != "assets":
+            assets = assets.find("assets")
+        self.parseAssetsScript(assets.find("scripts"), self.assetTreeObjects)
+        self.parseAssetsObject(assets.find("objects"), self.assetTreeScripts)
+
+    def parsePage(self, pageFile):
+        with open(pageFile, 'r') as file:
+            dstPath = os.path.basename(pageFile)
+            dstPath = os.path.splitext(dstPath)[0]
+            if dstPath != "index":
+                dstPath = "pages/" + dstPath
+            dstPath += ".html"
+            pageModel = PageModel()
+            pageModel.path = dstPath
+            pageModel.contents = markdown.markdown(open(pageFile, "r").read())
+            pageModel.title = "~"
+            self.pages.append(pageModel)
+
     def parseProject(self, projectpath, docpath):
         self.projectPath = projectpath
         self.docPath = docpath
         objectFiles = glob.glob(os.path.join(projectpath, "objects/*.object.gmx"))
         scriptFiles = glob.glob(os.path.join(projectpath, "scripts/*.gml"))
-        
+        projectFile = glob.glob(os.path.join(projectpath, "*.project.gmx"))[0]
+        pageFiles = glob.glob(os.path.join(docpath, "pages/*.md"))
+
         # parse objects
         for objectFile in objectFiles:
             self.parseObject(objectFile)
         for object in self.objects:
-            object.parent = self.getObject(object.parentName)
+            object.linkParent()
             if object.parent != None:
                 object.parent.children.append(object)
         for object in self.topLevelObjects:
             self.findObjectSidebarInfo(object)
+        
+        # parse pages
+        for page in pageFiles:
+            self.parsePage(page)
+
+        self.parseProjectFile(projectFile)
+        
         self.assetsDir = os.path.join(docpath, "assets")
         if not os.path.exists(self.assetsDir):
             self.assetsDir = ""
         
-        # prevent computer path from leaking into built html
+        # prevent local path from leaking into built html
         self.projectPath = ""
         self.docPath = ""
+        
+    def cleanCreateValue(self, str):
+        if str == None:
+            return ""
+        str = str.strip()
+        if str.endswith(";"):
+            str = str[:-1]
+        return str
 
     def _collectLines(self, eltEvent):
         lines = []
@@ -208,8 +342,9 @@ class DocModel:
                             var = VarModel()
                             var.name = m.group(1)
                             lines.append((LT_VAR, (var)))
-                            if m.group(3) != None:
-                                lines.append((LT_POSTCOMMENT, m.group(3)))
+                            var.createValue = self.cleanCreateValue(m.group(3))
+                            if m.group(5) != None:
+                                lines.append((LT_POSTCOMMENT, m.group(5)))
                         prev = m.end()
             lines.append((LT_SEP, "---- action separator ----"))
         return lines

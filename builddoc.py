@@ -92,6 +92,10 @@ class BuildDoc:
         html += "</ul>"
         return html
 
+    def buildPage(self, page):
+        file = page.path
+        self.makePage(file, page.contents, page.title)
+
     def buildObject(self, object):
         # sidebar
         sidebar = None
@@ -99,7 +103,7 @@ class BuildDoc:
             sidebar = SidebarInfo(object)
         
         # main html
-        file = os.path.join("objects", object.name + ".html")
+        file = "objects/" + object.name + ".html"
         # name (header)
         html = "<h1>" + object.name + "</h1>\n";
         
@@ -114,20 +118,40 @@ class BuildDoc:
                 hObj = hObj.parent
             html += hhtml + "\n"
         
-        # Code-scraped description
+        # Code-scraped description and defaults
         html += "<h2> Description </h2>\n" + \
             "<p>" + object.docText + "</p>\n"
         varTableName = "Variables"
         varObjectSource = object
         while varObjectSource != None:
             html += "<h2> " + varTableName + " </h2>\n" + \
-            "<table><tr><th>Name</th><th>Description</th></tr>"
+            "<table><tr><th>Name</th><th>Value</th><th>Description</th></tr>"
+            anyDifferent = False
+            ccExists = False
             for var in varObjectSource.vars:
-                html += "<tr><td>" + var.name + "</td><td>" + var.docText + "</td></tr>\n"
+                if var.baseObject != varObjectSource:
+                    continue
+                myVar = object.getVariable(var.name)
+                isDifferent = False
+                differenceMarker = ""
+                if myVar.createValue != var.createValue:
+                    isDifferent = True
+                    anyDifferent = True
+                    differenceMarker = " <i>(*)</i>"
+                varname = var.name
+                if "cc" in var.flags:
+                    ccExists = True
+                    varname = "<span class=\"cc\">" + varname + "</span>"
+                html += "<tr><td>" + varname + "</td><td>" + myVar.createValue + differenceMarker + "</td><td>" + myVar.docText + "</td></tr>\n"
+            html += "</table>\n"
+            if anyDifferent:
+                html += "<p><i>* value is modified from the default for " + varObjectSource.name + ".<i></p>"
+            if ccExists:
+                html += "<p><i>variable names in <b>bold</b> are safe to set in creation code.<i></p>"
+            # setup next iteration
             varObjectSource = self.docModel.getObject(varObjectSource.parentName)
             if varObjectSource != None:
                 varTableName = "Inherited from " + varObjectSource.name
-            html += "</table>\n"
             
         if len(object.children) > 0:
             html += "<h2> Descendents of " + object.name + " </h2>"
@@ -150,6 +174,8 @@ class BuildDoc:
             f.write("*")
         for object in self.docModel.objects:
             self.buildObject(object)
+        for page in self.docModel.pages:
+            self.buildPage(page)
         self.buildObjectsRoot()
 
 def build(docModel, buildPath):
