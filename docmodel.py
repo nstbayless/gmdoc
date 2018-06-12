@@ -8,6 +8,9 @@ import markdown
 import markdown.extensions.extra
 from constants import *
 import json
+from datetime import datetime
+
+buildDate = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
 
 builtIn = {}
 
@@ -162,7 +165,9 @@ class DocModel:
         return self.getMarkdown(text.strip())
     
     def getMarkdown(self, md):
-        return markdown.markdown(md, extensions=['markdown.extensions.extra'])
+        html = markdown.markdown(md, extensions=['markdown.extensions.extra'])
+        html = html.replace("%WIKIBUILDDATE%", buildDate + " (GMT)")
+        return html
     
     # recursively find sidebar script for object and all children
     def findObjectSidebarInfo(self, object):
@@ -282,27 +287,34 @@ class DocModel:
             self.pages.append(pageModel)
 
     def parseProject(self, projectpath, docpath):
+        print("Parsing project...")
         self.projectPath = projectpath
         self.docPath = docpath
+        print("  Obtaining file lists")
         objectFiles = glob.glob(os.path.join(projectpath, "objects/*.object.gmx"))
         scriptFiles = glob.glob(os.path.join(projectpath, "scripts/*.gml"))
         projectFile = glob.glob(os.path.join(projectpath, "*.project.gmx"))[0]
         pageFiles = glob.glob(os.path.join(docpath, "pages/*.md"))
 
         # parse objects
+        print("  Parsing objects")
         for objectFile in objectFiles:
             self.parseObject(objectFile)
+        print("  Linking object inheritance")
         for object in self.objects:
             object.linkParent()
             if object.parent != None:
                 object.parent.children.append(object)
+        print("  Finding sidebar info")
         for object in self.topLevelObjects:
             self.findObjectSidebarInfo(object)
         
         # parse pages
+        print("  Parsing pages")
         for page in pageFiles:
             self.parsePage(page)
 
+        print("  Parsing .project.gmx file")
         self.parseProjectFile(projectFile)
         
         self.assetsDir = os.path.join(docpath, "assets")

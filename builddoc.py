@@ -70,7 +70,7 @@ class BuildDoc:
 		<!-- Latest compiled JavaScript -->
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>\n"""
         _html += '<link rel="stylesheet" href="' + os.path.join(pathPrepend , 'assets/styles/default.css') + '" type="text/css">\n'
-        _html += "<body>\n"
+        _html += '<body><div class="page">\n'
         if sidebar != None:
             _html += """<div class="row no-gutters">\n"""
             _html += sidebar.build()
@@ -80,7 +80,7 @@ class BuildDoc:
             _html += "</div></div>"
         if self.docModel.footerMessage != "":
             _html += "\n<h5>" + self.docModel.footerMessage + "</h5>"
-        _html += "\n</body></html>"
+        _html += "\n</body></div></html>"
         with open(os.path.join(self.buildPath, file), "w") as f:
             f.write(_html)
     
@@ -103,7 +103,7 @@ class BuildDoc:
 
     def buildPage(self, page):
         file = page.path
-        print(file)
+        print("   " + file)
         self.makePage(file, page.contents, page.title)
 
     def buildObject(self, object):
@@ -170,10 +170,22 @@ class BuildDoc:
             html += self.buildInheritanceTree(object)
         self.makePage(file, html, object.name, sidebar)
     
-    def buildObjectsRoot(self):
+    def buildListingsHelper(self, assetTree):
+        html = "<ul> " + assetTree.name
+        for subTree in assetTree.children:
+            if subTree.isNode:
+                object = self.docModel.getObject(subTree.name)
+                if object != None:
+                    html += '<li><a href="objects/' + object.name + '.html">' + object.name + '</a></li>\n'
+                else:
+                    html += '<li>' + subTree.name + ' (missing)</li>'
+            else:
+                html += self.buildListingsHelper(subTree)
+        return html + '</ul>'
+    
+    def buildListings(self):
         html = "<h1> Objects Listing </h1><h3>All Objects:</h3>"
-        for object in self.docModel.objects:
-            html += '<p><a href="objects/' + object.name + '.html">' + object.name + '</a></p>'
+        html += self.buildListingsHelper(self.docModel.assetTreeObjects)
         self.makePage("objectsListing.html", html, "Objects Listing")
     
     def copySpriteFiles(self):
@@ -183,21 +195,28 @@ class BuildDoc:
             shutil.copyfile(file, os.path.join(self.buildPath, "assets", "images", "objects", fileNoNumber))
     
     def build(self):
+        print("Building...")
         self.mkdir("objects")
         self.mkdir("scripts")
         self.mkdir("pages")
         if self.docModel.assetsDir != "":
+            print("  Copying assets")
             copyReplaceDirectory(self.docModel.assetsDir, os.path.join(self.buildPath, "assets"))
             self.mkdir(os.path.join("assets", "images"))
             self.mkdir(os.path.join("assets", "images", "objects"))
+            print("  Copying sprites")
             self.copySpriteFiles()
+        print("  Adding .gitignore")
         with open(os.path.join(self.buildPath, ".gitignore"), "w") as f:
             f.write("*")
+        print("  building objects")
         for object in self.docModel.objects:
             self.buildObject(object)
+        print("  building pages")
         for page in self.docModel.pages:
             self.buildPage(page)
-        self.buildObjectsRoot()
+        print("  building listings")
+        self.buildListings()
 
 def build(docModel, buildPath):
     bd = BuildDoc(docModel, buildPath)

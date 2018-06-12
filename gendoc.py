@@ -47,6 +47,7 @@ def main():
     dcm = docmodel.DocModel()
     dcm.parseProject(projectpath, docpath)
     builddoc.build(dcm, buildpath)
+    print("Done.")
     return 0
     
 errcode = main()
