@@ -137,7 +137,7 @@ class BuildDoc:
         varObjectSource = object
         while varObjectSource != None:
             html += "<h2> " + varTableName + " </h2>\n" + \
-            "<table><tr><th>Name</th><th>Value</th><th>Description</th></tr>"
+            "<table class=centre><tr><th>Name</th><th>Value</th><th>Description</th></tr>"
             anyDifferent = False
             ccExists = False
             for var in varObjectSource.vars:
