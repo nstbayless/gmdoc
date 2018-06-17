@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 import glob
 import os
 import re
+import copy
 import markdown
 import markdown.extensions.extra
 from constants import *
@@ -108,7 +109,7 @@ class ObjectModel:
                             else:
                                 myVar.docText = var.docText
                     if not foundVar:
-                        self.vars.append(var.copy())
+                        self.vars.append(copy.copy(var))
             
 
     def getVariable(self, varName):
