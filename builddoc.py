@@ -4,6 +4,8 @@ import util
 import importlib.util
 import glob
 
+objectListingElementID = 0
+
 def copyReplaceDirectory(src, dst):
     if os.path.exists(dst):
         shutil.rmtree(dst)
@@ -61,14 +63,15 @@ class BuildDoc:
         pathPrepend = "../" * pathDepth
         _html = "<html>"
         if title != "":
-            _html  += '<title>' + title+ '</title>'
+            _html  += '<title>' + title + '</title>'
         # bootstrap
-        _html += """<!-- Latest compiled and minified CSS -->
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-		<!-- jQuery library -->
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-		<!-- Latest compiled JavaScript -->
-		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>\n"""
+        _html += """<meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <!-- jQuery library -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <!-- Latest compiled JavaScript -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>\n"""
         _html += '<link rel="stylesheet" href="' + os.path.join(pathPrepend , 'assets/styles/default.css') + '" type="text/css">\n'
         _html += '<body><div class="page">\n'
         if sidebar != None:
@@ -137,7 +140,7 @@ class BuildDoc:
         varObjectSource = object
         while varObjectSource != None:
             html += "<h2> " + varTableName + " </h2>\n" + \
-            "<table><tr><th>Name</th><th>Value</th><th>Description</th></tr>"
+            "<table class=centre><tr><th>Name</th><th>Value</th><th>Description</th></tr>"
             anyDifferent = False
             ccExists = False
             for var in varObjectSource.vars:
@@ -171,7 +174,10 @@ class BuildDoc:
         self.makePage(file, html, object.name, sidebar)
     
     def buildListingsHelper(self, assetTree):
-        html = "<b>" + assetTree.name + "</b>\n<ul>"
+        global objectListingElementID
+        objectListingElementID += 1
+        html = '<a class="dropdown" data-toggle="collapse" href="#' + str(objectListingElementID) + '">' \
+            + assetTree.name + '</a>\n<div id="' + str(objectListingElementID) + '" class="collapse in"><ul>'
         for subTree in assetTree.children:
             if subTree.isNode:
                 object = self.docModel.getObject(subTree.name)
