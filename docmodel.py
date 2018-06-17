@@ -312,7 +312,11 @@ class DocModel:
             if object.parent != None:
                 object.parent.children.append(object)
         print("  Finding sidebar info")
+        defaultSidebarFile = os.path.join(self.docPath, "objects", "sidebars", ".py")
+        if not os.path.isfile(defaultSidebarFile):
+            defaultSidebarFile = ""
         for object in self.topLevelObjects:
+            object.sidebarScript = defaultSidebarFile
             self.findObjectSidebarInfo(object)
         
         # parse pages

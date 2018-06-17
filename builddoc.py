@@ -29,7 +29,7 @@ class SidebarInfo:
             self.imagePath = util.getRelativeNetPath("objects/"+object.name+".html","assets/images/objects/" + object.spriteName + ".png")
         self.collapseTitles = []
         self.collapseInfo = []
-        self.enabled = False
+        self.enabled = True
         if (self.object.sidebarScript != ""):
             sidebar = self
             exec(open(self.object.sidebarScript, "r").read())
@@ -40,6 +40,8 @@ class SidebarInfo:
         html += "<h2>" + self.title + "</h2>"
         if self.imagePath != "":
             html += '<img class = "centre" src="' + self.imagePath + '" alt="' + self.object.spriteName + '">\n'
+        else:
+            html += '<i>This object has no sprite.</i>'
         i = -1
         for title in self.collapseTitles:
             i+=1
@@ -122,9 +124,12 @@ class BuildDoc:
         # name (header)
         html = "<h1>" + object.name + "</h1>\n";
         
+        # Resource Path
+        html += (object.assetPath + object.name).replace("/", " <b>/</b> ") + "<br/>";
+        
         # Parents
         if object.parent == None:
-            html += "<p><i>This object has no parent.</i></p>\n"
+            html += "<i>This object has no parent.</i>\n"
         else:
             hObj = object
             hhtml = ""
