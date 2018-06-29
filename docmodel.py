@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 import glob
 import os
 import re
+from re import findall
 import copy
 import markdown
 import markdown.extensions.extra
@@ -289,7 +290,7 @@ class DocModel:
             pageModel = PageModel()
             pageModel.path = dstPath
             pageModel.contents = self.getMarkdown(open(pageFile, "r").read())
-            pageModel.title = "~"
+            pageModel.title = findall("# (.+)", open(pageFile, "r").read())[0]
             self.pages.append(pageModel)
 
     def parseProject(self, projectpath, docpath):
