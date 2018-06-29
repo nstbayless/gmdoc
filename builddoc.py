@@ -36,8 +36,8 @@ class SidebarInfo:
             
         
     def build(self):
-        html = """<div class="col-sm-3 col-sm-push-9">\n"""
-        html += "<h2>" + self.title + "</h2>"
+        html = """<div class="col-sm-3 col-sm-push-9" style="padding-left:3px;">\n"""
+        html += "<h1>" + self.title + "</h1>"
         if self.imagePath != "":
             html += '<img class = "centre" src="' + self.imagePath + '" alt="' + self.object.spriteName + '">\n'
         else:
